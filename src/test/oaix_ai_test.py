@@ -5,6 +5,7 @@ import os
 from PIL import Image
 from io import BytesIO
 import base64
+from oaix_prompt import oaix_deterrant_prompt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,7 +43,8 @@ class AIVIsion():
                 return None
             
             client = OpenAI(api_key=self.openai_api_key)
-            prompt = ("describe the frame and what you see")
+            # prompt = ("CONTEXT: the image sent to you is from CCTV footage and you are the Security gard - INSTRUCTIN: create a deterrant message that would threaten them to leave with some personal information about the intruders.")
+            prompt = ('describe the people in the frame')
         
             logger.info(f"Sending request to OpenAI with frame (size: {len(frame_base64)} chars base64)")
             response = client.chat.completions.create(
@@ -87,6 +89,7 @@ def main():
     ai = AIVIsion()
     base_64_image = ai.resize_and_encode_image(img)    
     response = ai._call_openai_vision(base_64_image, 'png')
+    print(response)
 
 if __name__ == "__main__":
     main()

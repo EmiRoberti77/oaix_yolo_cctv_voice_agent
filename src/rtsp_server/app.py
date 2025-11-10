@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 from starlette.concurrency import iterate_in_threadpool
 from dotenv import load_dotenv
 import pygame
+from AIVision import AIVIsion as OAIX
 pygame.mixer.init()
 
 # Setup logging first
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Get project root (go up from src/rtsp_server to project root)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 ALERTS = os.path.join(ROOT, 'src', 'rtsp_server', 'alerts')
-audio_path = os.path.join(ALERTS,'emi_1.mp3')  # This gives you the actual path string
+audio_path = os.path.join(ALERTS,'warning.mp3')  # This gives you the actual path string
 print(audio_path)
 if not os.path.exists(audio_path):
     raise Error('Can not access alerts')
@@ -219,6 +220,17 @@ class BaseSource:
                         if not pygame.mixer.music.get_busy():  # Only play if nothing is currently playing
                             pygame.mixer.music.load(audio_path)
                             pygame.mixer.music.play()
+                            # now create an openai message 
+                            oaix = OAIX()
+                            # Encode the frame to base64
+                            frame_base64 = oaix.resize_and_encode_image(frame)
+                            # Call OpenAI Vision API
+                            message = oaix.call_openai_vision(frame_base64, 'jpeg')
+                            if message:
+                                logger.info(f"OpenAI response: {message}")
+                                # Convert OpenAI response to speech and play automatically
+                                oaix.text_to_speech_and_play(message)
+
 
             except Exception as e:
                 logger.error(f"YOLO detection error: {e}")
