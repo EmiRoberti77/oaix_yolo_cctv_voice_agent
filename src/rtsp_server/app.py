@@ -640,7 +640,7 @@ def mjpeg_generator() -> Generator[bytes, None, None]:
         ])
 
 
-@app.get("/mjpeg")
+@app.get("/oaix_live")
 def mjpeg() -> StreamingResponse:
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
