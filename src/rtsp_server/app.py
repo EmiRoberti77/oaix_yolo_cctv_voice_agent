@@ -79,7 +79,7 @@ LOOP = os.getenv("LOOP", "1") not in ("0", "false", "False")
 FOLLOW = os.getenv("FOLLOW", "0") not in ("0", "false", "False")
 PLAY_AT_REAL_SPEED = os.getenv("PLAY_AT_REAL_SPEED", "1") not in ("0", "false", "False")
 ENABLE_YOLO = os.getenv("ENABLE_YOLO", "1") not in ("0", "false", "False") if YOLO_AVAILABLE else False
-YOLO_MODEL = os.getenv("YOLO_MODEL", "yolov8n.pt")  # yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt
+YOLO_MODEL = os.getenv("YOLO_MODEL", "yolo11n.pt")  # yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt
 try:
     YOLO_CONFIDENCE = float(os.getenv("YOLO_CONFIDENCE", "0.25"))  # Detection confidence threshold
 except ValueError:
@@ -99,7 +99,7 @@ ALERT_COOLDOWN_SECONDS = float(os.getenv("ALERT_COOLDOWN_SECONDS", "4.0"))  # Wa
 
 class YOLODetector:
     """YOLO detector for all object classes."""
-    def __init__(self, model_path: str = "yolov8n.pt", confidence: float = 0.25):
+    def __init__(self, model_path: str = "yolo11n.pt", confidence: float = 0.25):
         if not YOLO_AVAILABLE:
             raise ImportError("ultralytics not installed. Install with: pip install ultralytics")
         self.model = YOLO(model_path)
@@ -213,6 +213,7 @@ class BaseSource:
                             people_count += 1
                     
                     frame = self.yolo_detector.draw_detections(frame, detections)
+
                     if people_count > 1:
                         print(f'{datetime.datetime.now().isoformat()} PLAY_AUDIO FILE >>>>> ')
                         if not pygame.mixer.music.get_busy():  # Only play if nothing is currently playing
