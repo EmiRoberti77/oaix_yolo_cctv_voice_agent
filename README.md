@@ -1,55 +1,136 @@
 # OAIX CCTV Agent
 
-A Next.js application that displays MJPEG streams from a FastAPI RTSP server.
+A real-time CCTV monitoring system with YOLO object detection, OpenAI Vision analysis, and Eleven Labs text-to-speech alerts. Streams MJPEG video with bounding boxes for detected objects and provides intelligent alerts when people are detected.
 
-## Setup
+## Prerequisites
 
-### 0. Configure Environment Variables
+- **Python 3.8+** (Python 3.9+ recommended)
+- **Node.js 18+** (optional, only if using Next.js frontend)
+- **API Keys**:
+  - OpenAI API key (for vision analysis)
+  - Eleven Labs API key (for text-to-speech)
+  - Eleven Labs Voice ID
 
-Create a `.env` file in the project root (see `.env.example` for template):
+## Installation
+
+### 1. Clone the Repository
 
 ```bash
-cp .env.example .env
-# Edit .env and add your API keys:
-# - OPENAI_API_KEY
-# - ELEVEN_LABS_API_KEY
-# - ELEVEN_LABS_VOICE_ID
+git clone <repository-url>
+cd OAIX_cctv_agent
 ```
 
-### 1. Install Python Dependencies
+### 2. Create Python Virtual Environment
 
 ```bash
-# Install all dependencies including YOLO
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+```
+
+### 3. Install Python Dependencies
+
+```bash
+# Make sure you're in the project root directory
+pip install --upgrade pip
 pip install -r requirements.txt
-
-# Or install individually:
-pip install fastapi uvicorn opencv-python-headless numpy ultralytics
 ```
 
-### 2. Install Next.js Dependencies
+This will install:
+
+- `fastapi` - Web framework for the RTSP server
+- `uvicorn` - ASGI server
+- `opencv-python-headless` - Video processing
+- `numpy` - Numerical operations
+- `ultralytics` - YOLO object detection
+- `openai` - OpenAI Vision API
+- `python-dotenv` - Environment variable management
+- `requests` - HTTP requests
+- `Pillow` - Image processing
+- `pygame` - Audio playback
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+# Create .env file
+touch .env
+```
+
+Add the following to your `.env` file:
+
+```env
+# Required API Keys
+OPENAI_API_KEY=your_openai_api_key_here
+ELEVEN_LABS_API_KEY=your_eleven_labs_api_key_here
+ELEVEN_LABS_VOICE_ID=your_eleven_labs_voice_id_here
+
+# Optional Configuration
+SOURCE_MODE=multifile
+VIDEO_DIR=src/videos
+ENABLE_YOLO=1
+YOLO_MODEL=yolo11n.pt
+YOLO_CONFIDENCE=0.25
+ENABLE_ALERTS=1
+UVICORN_HOST=0.0.0.0
+UVICORN_PORT=8000
+```
+
+**Note**: The `.env` file should be in the project root directory (same level as `requirements.txt`).
+
+### 5. Prepare Video Files (Optional)
+
+Place your video files in `src/videos/` directory. The default mode (`multifile`) will play all videos in sequence.
+
+### 6. Install Next.js Dependencies (Optional - for frontend)
+
+If you plan to use the Next.js frontend:
 
 ```bash
 npm install
 ```
 
-### 3. Run the RTSP Server
+## Running the Application
+
+### Start the RTSP Server
 
 ```bash
+# Make sure virtual environment is activated
+source venv/bin/activate  # On macOS/Linux
+# or
+# venv\Scripts\activate  # On Windows
+
+# Navigate to the server directory
 cd src/rtsp_server
+
+# Run the server
 python app.py
 ```
 
-The server will run on `http://localhost:8000` by default.
+The server will start on `http://localhost:8000` by default.
 
-### 4. Run the Next.js Application
+**Verify the server is running:**
+
+- Health check: `http://localhost:8000/health`
+- MJPEG stream: `http://localhost:8000/oaix_live`
+- API docs: `http://localhost:8000/docs`
+
+### Start the Next.js Frontend (Optional)
 
 In a separate terminal:
 
 ```bash
+# Make sure you're in the project root
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`.
+The frontend will be available at `http://localhost:3000`.
 
 ## Configuration
 
@@ -66,7 +147,7 @@ The application will be available at `http://localhost:3000`.
 - `FRAME_WIDTH`: Resize width, 0 = as-is (default: `"0"`)
 - `FRAME_HEIGHT`: Resize height, 0 = as-is (default: `"0"`)
 - `ENABLE_YOLO`: Enable YOLO object detection for all classes (default: `"1"`)
-- `YOLO_MODEL`: YOLO model to use (default: `"yolov8n.pt"` - options: yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)
+- `YOLO_MODEL`: YOLO model to use (default: `"yolo11n.pt"` - options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt, or yolov8 variants)
 - `YOLO_CONFIDENCE`: Detection confidence threshold 0.0-1.0 (default: `"0.25"`)
 - `OPENAI_API_KEY`: OpenAI API key for vision analysis (required for alerts)
 - `ELEVEN_LABS_API_KEY`: Eleven Labs API key for text-to-speech (required for alerts)
@@ -78,7 +159,7 @@ The application will be available at `http://localhost:3000`.
 
 ### Next.js Environment Variables
 
-- `MJPEG_SERVER_URL`: URL of the MJPEG server (default: `http://localhost:8000/mjpeg`)
+- `MJPEG_SERVER_URL`: URL of the MJPEG server (default: `http://localhost:8000/oaix_live`)
 
 ## Usage
 
@@ -129,10 +210,10 @@ export ENABLE_YOLO="0"
 
 ```bash
 # Use a larger, more accurate model (slower)
-export YOLO_MODEL="yolov8m.pt"
+export YOLO_MODEL="yolo11m.pt"
 
 # Use a smaller, faster model (less accurate)
-export YOLO_MODEL="yolov8n.pt"  # default
+export YOLO_MODEL="yolo11n.pt"  # default
 ```
 
 ### Adjust Detection Confidence
@@ -157,7 +238,7 @@ curl http://localhost:8000/health
 
 ### Test MJPEG Stream
 
-Open in browser: `http://localhost:8000/mjpeg`
+Open in browser: `http://localhost:8000/oaix_live`
 
 ### Automated Test
 
