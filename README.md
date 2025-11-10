@@ -120,6 +120,12 @@ The server will start on `http://localhost:8000` by default.
 - Health check: `http://localhost:8000/health`
 - MJPEG stream: `http://localhost:8000/oaix_live`
 - API docs: `http://localhost:8000/docs`
+- Detection status: `http://localhost:8000/status`
+
+**Start detection:**
+
+- Start detection: `POST http://localhost:8000/start`
+- Stop detection: `POST http://localhost:8000/stop`
 
 ### Start the Next.js Frontend (Optional)
 
@@ -164,13 +170,57 @@ The frontend will be available at `http://localhost:3000`.
 ## Usage
 
 1. Start the RTSP server
-2. Start the Next.js dev server
-3. Open `http://localhost:3000` in your browser
-4. The MJPEG stream will be displayed automatically with YOLO object detection bounding boxes showing all detected classes
+2. **Start object detection** (required for detection to work):
+   ```bash
+   curl -X POST http://localhost:8000/start
+   ```
+3. Start the Next.js dev server (optional)
+4. Open `http://localhost:3000` in your browser (or `http://localhost:8000/oaix_live` for direct stream)
+5. The MJPEG stream will display video. When detection is started, bounding boxes will appear for detected objects
+
+**Note**: The video stream works immediately, but object detection (bounding boxes, alerts) only runs after calling the `/start` endpoint.
 
 ## YOLO Detection
 
-The server includes YOLO object detection by default. All detected objects (people, cars, animals, etc.) are shown with colored bounding boxes, class names, and confidence scores. Each class type gets a different color for easy identification.
+The server includes YOLO object detection capabilities. All detected objects (people, cars, animals, etc.) are shown with colored bounding boxes, class names, and confidence scores. Each class type gets a different color for easy identification.
+
+**Important**: Object detection is **disabled by default** when the server starts. You must explicitly start detection using the `/start` endpoint.
+
+### Controlling Detection
+
+The detection system can be controlled via REST API endpoints:
+
+#### Start Detection
+
+```bash
+curl -X POST http://localhost:8000/start
+```
+
+Starts object detection. The video stream will begin showing bounding boxes and processing alerts when people are detected.
+
+#### Stop Detection
+
+```bash
+curl -X POST http://localhost:8000/stop
+```
+
+Stops object detection. The video stream continues, but no detection or alerts will be processed.
+
+#### Check Detection Status
+
+```bash
+curl http://localhost:8000/status
+```
+
+Returns the current detection status, including whether detection is running and if the detector is available.
+
+**Example Response:**
+
+```
+Detection running: True
+Detector available: True
+Source active: True
+```
 
 ## Alert System
 
@@ -226,6 +276,35 @@ export YOLO_CONFIDENCE="0.5"
 export YOLO_CONFIDENCE="0.25"  # default
 ```
 
+## API Endpoints
+
+The server provides the following REST API endpoints:
+
+| Endpoint     | Method | Description                                |
+| ------------ | ------ | ------------------------------------------ |
+| `/health`    | GET    | Server health check and configuration info |
+| `/oaix_live` | GET    | MJPEG video stream with object detection   |
+| `/start`     | POST   | Start object detection                     |
+| `/stop`      | POST   | Stop object detection                      |
+| `/status`    | GET    | Get current detection status               |
+| `/docs`      | GET    | Interactive API documentation (Swagger UI) |
+
+### Example API Calls
+
+```bash
+# Check server health
+curl http://localhost:8000/health
+
+# Start detection
+curl -X POST http://localhost:8000/start
+
+# Check detection status
+curl http://localhost:8000/status
+
+# Stop detection
+curl -X POST http://localhost:8000/stop
+```
+
 ## Testing the Server
 
 To verify that `app.py` is working correctly:
@@ -239,6 +318,12 @@ curl http://localhost:8000/health
 ### Test MJPEG Stream
 
 Open in browser: `http://localhost:8000/oaix_live`
+
+**Note**: Remember to start detection first if you want to see bounding boxes:
+
+```bash
+curl -X POST http://localhost:8000/start
+```
 
 ### Automated Test
 

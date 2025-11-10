@@ -181,6 +181,7 @@ class BaseSource:
         self._stop_evt = threading.Event()
         self._new_frame_evt = threading.Event()
         self._reader_thread: Optional[threading.Thread] = None
+        self._detection_enabled = threading.Event()  # Control detection start/stop
 
     def start(self) -> None:
         if self._reader_thread and self._reader_thread.is_alive():
@@ -202,9 +203,9 @@ class BaseSource:
         if w > 0 and h > 0 and (frame.shape[1] != w or frame.shape[0] != h):
             frame = cv2.resize(frame, (w, h), interpolation=cv2.INTER_AREA)
         
-        # Apply YOLO detection if enabled
+        # Apply YOLO detection if enabled and detection is started
         detections = []
-        if self.yolo_detector is not None:
+        if self.yolo_detector is not None and self._detection_enabled.is_set():
             try:
                 detections = self.yolo_detector.detect_objects(frame)
                 if detections:
@@ -652,6 +653,52 @@ def mjpeg() -> StreamingResponse:
         media_type="multipart/x-mixed-replace; boundary=frame",
         headers=headers,
     )
+
+
+@app.post("/start", response_class=PlainTextResponse)
+def start_detection():
+    """Start object detection."""
+    global source
+    if source is None:
+        return PlainTextResponse("Error: Video source not initialized", status_code=500)
+    
+    if source.yolo_detector is None:
+        return PlainTextResponse("Error: YOLO detector not available", status_code=400)
+    
+    source._detection_enabled.set()
+    logger.info("Object detection started")
+    return PlainTextResponse("Object detection started")
+
+
+@app.post("/stop", response_class=PlainTextResponse)
+def stop_detection():
+    """Stop object detection."""
+    global source
+    if source is None:
+        return PlainTextResponse("Error: Video source not initialized", status_code=500)
+    
+    source._detection_enabled.clear()
+    logger.info("Object detection stopped")
+    return PlainTextResponse("Object detection stopped")
+
+
+@app.get("/status", response_class=PlainTextResponse)
+def detection_status():
+    """Get detection status."""
+    global source
+    if source is None:
+        return PlainTextResponse("Error: Video source not initialized", status_code=500)
+    
+    is_running = source._detection_enabled.is_set() if source else False
+    has_detector = source.yolo_detector is not None if source else False
+    
+    status = {
+        "detection_running": is_running,
+        "detector_available": has_detector,
+        "source_active": source is not None
+    }
+    
+    return PlainTextResponse(f"Detection running: {is_running}\nDetector available: {has_detector}\nSource active: {source is not None}")
 
 
 if __name__ == "__main__":
